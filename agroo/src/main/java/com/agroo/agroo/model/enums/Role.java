@@ -6,5 +6,6 @@ public enum Role {
     ROLE_MACHINERY_OWNER,
     ROLE_AGRICULTURAL_OFFICER,
     ROLE_USER,
-    ROLE_GUEST
+    ROLE_GUEST,
+    ROLE_ADMIN
 }

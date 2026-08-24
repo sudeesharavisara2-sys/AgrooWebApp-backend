@@ -10,23 +10,19 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class AuthRequest {
-
-    @NotBlank(message = "Username is required")
-    @Size(min = 3, max = 50, message = "Username must be between 3 and 50 characters")
-    private String username;
-
+public class ResetPasswordRequest {
     @NotBlank(message = "Email is required")
     @Email(message = "Invalid email format")
     private String email;
 
-    @NotBlank(message = "Password is required")
-    @Size(min = 6, message = "Password must be at least 6 characters")
-    private String password;
+    @NotBlank(message = "OTP code is required")
+    @Size(min = 6, max = 6, message = "OTP must be 6 digits")
+    private String otpCode;
 
-    private String fullName;
-    private String phoneNumber;
-    private String address;
-    private String district;
-    private String role = "ROLE_USER";
+    @NotBlank(message = "New password is required")
+    @Size(min = 6, message = "Password must be at least 6 characters")
+    private String newPassword;
+
+    @NotBlank(message = "Confirm password is required")
+    private String confirmPassword;
 }
