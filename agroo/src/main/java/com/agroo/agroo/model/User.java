@@ -41,7 +41,10 @@ public class User implements UserDetails {
     private String bio;
 
     @Enumerated(EnumType.STRING)
-    private Role role = Role.ROLE_USER;
+    private Role role = Role.REGISTERED_USER;
+
+    @Column(name = "user_type")
+    private String userType; // FARMER, FERTILIZER_SELLER, MACHINERY_OWNER, BUYER
 
     @Column(name = "is_active")
     private Boolean isActive = true;
@@ -77,7 +80,7 @@ public class User implements UserDetails {
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return List.of(new SimpleGrantedAuthority(role.name()));
+        return List.of(new SimpleGrantedAuthority("ROLE_" + role.name()));
     }
 
     @Override
