@@ -55,12 +55,15 @@ public class AuthServiceImpl implements AuthService {
         user.setDistrict(request.getDistrict());
         user.setAddress(request.getAddress());
 
-        // Set role
+        // Set role - REGISTERED_USER by default
         try {
             user.setRole(Role.valueOf(request.getRole()));
         } catch (Exception e) {
-            user.setRole(Role.ROLE_USER);
+            user.setRole(Role.REGISTERED_USER);
         }
+
+        // Set user type
+        user.setUserType(request.getUserType() != null ? request.getUserType() : "BUYER");
 
         user.setIsVerified(false);
         user.setIsActive(true);
@@ -78,6 +81,7 @@ public class AuthServiceImpl implements AuthService {
                 user.getUsername(),
                 user.getEmail(),
                 user.getRole().name(),
+                user.getUserType(),
                 false,
                 "Registration successful. Please verify your email with OTP: " + otpCode,
                 true
@@ -111,6 +115,7 @@ public class AuthServiceImpl implements AuthService {
                 user.getUsername(),
                 user.getEmail(),
                 user.getRole().name(),
+                user.getUserType(),
                 true,
                 "Email verified successfully",
                 true
@@ -158,6 +163,11 @@ public class AuthServiceImpl implements AuthService {
                 throw new RuntimeException("Please verify your email before logging in");
             }
 
+            // Check if user is active
+            if (!user.getIsActive()) {
+                throw new RuntimeException("Account is deactivated. Please contact admin.");
+            }
+
             // Update last login
             user.setLastLogin(LocalDateTime.now());
             user.setFailedAttempts(0);
@@ -173,6 +183,7 @@ public class AuthServiceImpl implements AuthService {
                     user.getUsername(),
                     user.getEmail(),
                     user.getRole().name(),
+                    user.getUserType(),
                     user.getIsVerified(),
                     "Login successful",
                     true
@@ -249,8 +260,15 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public ApiResponse logout(String token) {
-        // JWT is stateless, just invalidate on client side
-        // For blacklisting, you would need to store tokens in a blacklist
-        return new ApiResponse(true, "Logged out successfully");
+        // JWT is stateless, so we can't invalidate the token on the server
+        // However, we can do the following:
+        // 1. Clear the security context
+        SecurityContextHolder.clearContext();
+
+        // 2. Optionally: Add token to a blacklist (if you have a token blacklist service)
+        // blacklistService.addToBlacklist(token);
+
+        // 3. Client should discard the token on their side
+        return new ApiResponse(true, "Logged out successfully. Please discard your token on client side.");
     }
 }

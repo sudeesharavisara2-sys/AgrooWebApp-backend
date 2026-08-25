@@ -12,5 +12,5 @@ public interface AuthService {
     ApiResponse changePassword(ChangePasswordRequest request, String token);
     ApiResponse forgotPassword(ForgotPasswordRequest request);
     ApiResponse resetPassword(ResetPasswordRequest request);
-    ApiResponse logout(String token);
+    ApiResponse logout(String token);  // ← Make sure this exists
 }
