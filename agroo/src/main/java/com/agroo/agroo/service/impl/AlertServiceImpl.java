@@ -75,12 +75,14 @@ public class AlertServiceImpl implements AlertService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public Page<AlertResponse> getAllAlerts(Pageable pageable) {
         return alertRepository.findAll(pageable)
                 .map(this::mapToResponse);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<AlertResponse> getActiveAlerts() {
         // Fixed: Use PageRequest.of() instead of lambda
         Page<Alert> alertPage = alertRepository.findByIsActiveTrue(PageRequest.of(0, 100));
@@ -90,6 +92,7 @@ public class AlertServiceImpl implements AlertService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<AlertResponse> getUrgentAlerts() {
         return alertRepository.findByIsActiveTrueAndIsUrgentTrue()
                 .stream()
@@ -98,6 +101,7 @@ public class AlertServiceImpl implements AlertService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<AlertResponse> getAlertsByType(AlertType type) {
         return alertRepository.findByAlertType(type)
                 .stream()
@@ -125,6 +129,9 @@ public class AlertServiceImpl implements AlertService {
     }
 
     private AlertResponse mapToResponse(Alert alert) {
+        // Force initialize the createdBy proxy
+        User createdBy = alert.getCreatedBy();
+
         return AlertResponse.builder()
                 .id(alert.getId())
                 .title(alert.getTitle())
@@ -133,11 +140,12 @@ public class AlertServiceImpl implements AlertService {
                 .location(alert.getLocation())
                 .isActive(alert.getIsActive())
                 .isUrgent(alert.getIsUrgent())
-                .createdBy(AlertResponse.UserInfo.builder()
-                        .id(alert.getCreatedBy().getId())
-                        .username(alert.getCreatedBy().getUsername())
-                        .fullName(alert.getCreatedBy().getFullName())
-                        .build())
+                .createdBy(createdBy != null ?
+                        AlertResponse.UserInfo.builder()
+                                .id(createdBy.getId())
+                                .username(createdBy.getUsername())
+                                .fullName(createdBy.getFullName())
+                                .build() : null)
                 .expiresAt(alert.getExpiresAt())
                 .createdAt(alert.getCreatedAt())
                 .updatedAt(alert.getUpdatedAt())

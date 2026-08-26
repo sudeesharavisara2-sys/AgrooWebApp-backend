@@ -70,6 +70,7 @@ public class PriceServiceImpl implements PriceService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<PriceResponse> getAllPrices() {
         return priceRepository.findAll().stream()
                 .map(this::mapToResponse)
@@ -77,6 +78,7 @@ public class PriceServiceImpl implements PriceService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<PriceResponse> getLatestPrices() {
         return priceRepository.findLatestPrices().stream()
                 .map(this::mapToResponse)
@@ -84,6 +86,7 @@ public class PriceServiceImpl implements PriceService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<PriceResponse> getPricesByProduct(String productName) {
         return priceRepository.findByProductNameContainingIgnoreCase(productName).stream()
                 .map(this::mapToResponse)
@@ -91,6 +94,7 @@ public class PriceServiceImpl implements PriceService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public Map<String, Map<String, Double>> comparePrices(String productName, List<String> locations) {
         Map<String, Map<String, Double>> result = new HashMap<>();
 
@@ -115,6 +119,9 @@ public class PriceServiceImpl implements PriceService {
     }
 
     private PriceResponse mapToResponse(Price price) {
+        // Force initialize the updatedBy proxy
+        User updatedBy = price.getUpdatedBy();
+
         return PriceResponse.builder()
                 .id(price.getId())
                 .productName(price.getProductName())
@@ -122,11 +129,11 @@ public class PriceServiceImpl implements PriceService {
                 .price(price.getPrice())
                 .unit(price.getUnit())
                 .priceDate(price.getPriceDate())
-                .updatedBy(price.getUpdatedBy() != null ?
+                .updatedBy(updatedBy != null ?
                         PriceResponse.UserInfo.builder()
-                                .id(price.getUpdatedBy().getId())
-                                .username(price.getUpdatedBy().getUsername())
-                                .fullName(price.getUpdatedBy().getFullName())
+                                .id(updatedBy.getId())
+                                .username(updatedBy.getUsername())
+                                .fullName(updatedBy.getFullName())
                                 .build() : null)
                 .createdAt(price.getCreatedAt())
                 .updatedAt(price.getUpdatedAt())
