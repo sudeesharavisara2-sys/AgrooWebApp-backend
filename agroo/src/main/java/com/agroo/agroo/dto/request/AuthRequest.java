@@ -28,6 +28,4 @@ public class AuthRequest {
     private String phoneNumber;
     private String address;
     private String district;
-    private String userType = "BUYER";  // FARMER, FERTILIZER_SELLER, MACHINERY_OWNER, BUYER
-    private String role = "REGISTERED_USER";  // Default role
 }

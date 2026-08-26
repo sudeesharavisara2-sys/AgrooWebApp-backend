@@ -35,43 +35,27 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
-                        // ============================================================
-                        // PUBLIC ENDPOINTS - Accessible by GUEST users
-                        // ============================================================
+                        // Public endpoints - GUEST access (no authentication required)
                         .requestMatchers("/", "/api/test").permitAll()
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/api/public/**").permitAll()
-                        .requestMatchers("/api/products/**").permitAll()      // Guest can view products
-                        .requestMatchers("/api/posts/**").permitAll()         // Guest can view posts
-                        .requestMatchers("/api/prices/**").permitAll()        // Guest can view prices
-                        .requestMatchers("/api/fertilizer/**").permitAll()    // Guest can view fertilizers
-                        .requestMatchers("/api/machinery/**").permitAll()     // Guest can view machinery
+                        .requestMatchers("/api/products/**").permitAll()
+                        .requestMatchers("/api/posts/**").permitAll()
+                        .requestMatchers("/api/prices/**").permitAll()
 
-                        // ============================================================
-                        // REGISTERED_USER ENDPOINTS - Only authenticated users
-                        // ============================================================
+                        // REGISTERED_USER endpoints - need authentication
                         .requestMatchers("/api/user/**").hasRole("REGISTERED_USER")
-                        .requestMatchers("/api/products/create").hasRole("REGISTERED_USER")
-                        .requestMatchers("/api/posts/create").hasRole("REGISTERED_USER")
+                        .requestMatchers("/api/products/create/**").hasRole("REGISTERED_USER")
+                        .requestMatchers("/api/posts/create/**").hasRole("REGISTERED_USER")
                         .requestMatchers("/api/comments/**").hasRole("REGISTERED_USER")
+                        .requestMatchers("/api/likes/**").hasRole("REGISTERED_USER")
                         .requestMatchers("/api/groups/**").hasRole("REGISTERED_USER")
-                        .requestMatchers("/api/chats/**").hasRole("REGISTERED_USER")
-                        .requestMatchers("/api/rentals/create").hasRole("REGISTERED_USER")
-                        .requestMatchers("/api/fertilizer/create").hasRole("REGISTERED_USER")
+                        .requestMatchers("/api/messages/**").hasRole("REGISTERED_USER")
 
-                        // ============================================================
-                        // ADMIN ENDPOINTS - Only ADMIN users
-                        // ============================================================
+                        // ADMIN endpoints - only ADMIN role
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
-                        .requestMatchers("/api/admin/users/**").hasRole("ADMIN")
-                        .requestMatchers("/api/admin/posts/**").hasRole("ADMIN")
-                        .requestMatchers("/api/admin/products/**").hasRole("ADMIN")
-                        .requestMatchers("/api/admin/prices/**").hasRole("ADMIN")
-                        .requestMatchers("/api/admin/alerts/**").hasRole("ADMIN")
 
-                        // ============================================================
-                        // DEFAULT - All other requests require authentication
-                        // ============================================================
+                        // All other requests need authentication
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
