@@ -43,9 +43,6 @@ public class User implements UserDetails {
     @Enumerated(EnumType.STRING)
     private Role role = Role.REGISTERED_USER;
 
-    @Column(name = "user_type")
-    private String userType; // FARMER, FERTILIZER_SELLER, MACHINERY_OWNER, BUYER
-
     @Column(name = "is_active")
     private Boolean isActive = true;
 

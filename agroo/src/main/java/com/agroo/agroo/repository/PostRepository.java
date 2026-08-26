@@ -13,33 +13,67 @@ import java.util.List;
 @Repository
 public interface PostRepository extends JpaRepository<Post, Long> {
 
-    // Find posts by user
+    // ============================================================
+    // FIND BY USER
+    // ============================================================
     Page<Post> findByUserId(Long userId, Pageable pageable);
     List<Post> findByUserId(Long userId);
 
-    // Find public posts
+    // ============================================================
+    // FIND PUBLIC POSTS
+    // ============================================================
     Page<Post> findByIsPublicTrue(Pageable pageable);
+    List<Post> findByIsPublicTrue();
 
-    // Find recent posts with pagination
+    // ============================================================
+    // FIND RECENT POSTS
+    // ============================================================
     @Query("SELECT p FROM Post p ORDER BY p.createdAt DESC")
     Page<Post> findRecentPosts(Pageable pageable);
 
-    // Search posts by content
+    @Query("SELECT p FROM Post p ORDER BY p.createdAt DESC")
+    List<Post> findRecentPosts();
+
+    // ============================================================
+    // SEARCH BY CONTENT
+    // ============================================================
     @Query("SELECT p FROM Post p WHERE LOWER(p.content) LIKE LOWER(CONCAT('%', :keyword, '%'))")
     Page<Post> searchByContent(@Param("keyword") String keyword, Pageable pageable);
 
-    // Count posts by user
-    Long countByUserId(Long userId);
+    @Query("SELECT p FROM Post p WHERE LOWER(p.content) LIKE LOWER(CONCAT('%', :keyword, '%'))")
+    List<Post> searchByContent(@Param("keyword") String keyword);
 
-    // Find posts with most comments
+    // ============================================================
+    // COUNT METHODS
+    // ============================================================
+    Long countByUserId(Long userId);
+    long countByIsPublicTrue();
+    long count();
+
+    // ============================================================
+    // FIND MOST POPULAR POSTS
+    // ============================================================
     @Query("SELECT p FROM Post p ORDER BY SIZE(p.comments) DESC")
     Page<Post> findMostCommentedPosts(Pageable pageable);
 
-    // Find posts with most likes
     @Query("SELECT p FROM Post p ORDER BY SIZE(p.likes) DESC")
     Page<Post> findMostLikedPosts(Pageable pageable);
 
-    // Get user feed (posts from users a specific user follows - simplified)
+    // ============================================================
+    // USER FEED
+    // ============================================================
     @Query("SELECT p FROM Post p WHERE p.user.id IN :userIds ORDER BY p.createdAt DESC")
     Page<Post> findUserFeed(@Param("userIds") List<Long> userIds, Pageable pageable);
+
+    @Query("SELECT p FROM Post p WHERE p.user.id IN :userIds ORDER BY p.createdAt DESC")
+    List<Post> findUserFeed(@Param("userIds") List<Long> userIds);
+
+    // ============================================================
+    // FIND POSTS WITH IMAGES
+    // ============================================================
+    @Query("SELECT p FROM Post p WHERE p.imageUrl IS NOT NULL AND p.imageUrl != ''")
+    Page<Post> findPostsWithImages(Pageable pageable);
+
+    @Query("SELECT p FROM Post p WHERE p.videoUrl IS NOT NULL AND p.videoUrl != ''")
+    Page<Post> findPostsWithVideos(Pageable pageable);
 }

@@ -53,6 +53,13 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     Page<Product> findByCategoryAndIsAvailableTrue(ProductCategory category, Pageable pageable);
 
     // ============================================================
+    // COUNT METHODS
+    // ============================================================
+    Long countByFarmerId(Long farmerId);
+    Long countByIsAvailableTrue();
+    Long countByCategory(ProductCategory category);
+
+    // ============================================================
     // SEARCH BY NAME
     // ============================================================
     @Query("SELECT p FROM Product p WHERE LOWER(p.name) LIKE LOWER(CONCAT('%', :keyword, '%'))")
@@ -73,7 +80,7 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     Page<Product> searchByLocation(@Param("location") String location, Pageable pageable);
 
     // ============================================================
-    // ADVANCED SEARCH (Fixed for PostgreSQL - Using native query)
+    // ADVANCED SEARCH (Native Query for PostgreSQL)
     // ============================================================
     @Query(value = "SELECT * FROM products p WHERE " +
             "(:category IS NULL OR p.category = CAST(:category AS VARCHAR)) AND " +
@@ -114,15 +121,13 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     );
 
     // ============================================================
-    // COUNT
-    // ============================================================
-    Long countByFarmerId(Long farmerId);
-
-    // ============================================================
     // RECENT PRODUCTS
     // ============================================================
     @Query("SELECT p FROM Product p ORDER BY p.createdAt DESC")
     List<Product> findRecentProducts(Pageable pageable);
+
+    @Query("SELECT p FROM Product p ORDER BY p.createdAt DESC")
+    Page<Product> findRecentProductsPage(Pageable pageable);
 
     // ============================================================
     // FIND BY CATEGORY WITH JOIN FETCH (Fix lazy loading)
@@ -135,4 +140,105 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
 
     @Query("SELECT p FROM Product p JOIN FETCH p.farmer WHERE p.category = :category")
     List<Product> findByCategoryWithFarmer(@Param("category") ProductCategory category);
+
+    // ============================================================
+    // STATS & ANALYTICS
+    // ============================================================
+    @Query("SELECT p.category, COUNT(p) FROM Product p GROUP BY p.category")
+    List<Object[]> countByCategory();
+
+    @Query("SELECT p.productType, COUNT(p) FROM Product p GROUP BY p.productType")
+    List<Object[]> countByProductType();
+
+    @Query("SELECT p.saleType, COUNT(p) FROM Product p GROUP BY p.saleType")
+    List<Object[]> countBySaleType();
+
+    @Query("SELECT p.category, AVG(p.price) FROM Product p GROUP BY p.category")
+    List<Object[]> averagePriceByCategory();
+
+    // ============================================================
+    // FIND BY PRICE RANGE
+    // ============================================================
+    List<Product> findByPriceBetween(Double minPrice, Double maxPrice);
+    Page<Product> findByPriceBetween(Double minPrice, Double maxPrice, Pageable pageable);
+
+    // ============================================================
+    // FIND BY LOCATION AND CATEGORY
+    // ============================================================
+    List<Product> findByLocationContainingIgnoreCaseAndCategory(String location, ProductCategory category);
+    Page<Product> findByLocationContainingIgnoreCaseAndCategory(String location, ProductCategory category, Pageable pageable);
+
+    // ============================================================
+    // FIND AVAILABLE PRODUCTS BY CATEGORY
+    // ============================================================
+    List<Product> findByIsAvailableTrueAndCategory(ProductCategory category);
+    Page<Product> findByIsAvailableTrueAndCategory(ProductCategory category, Pageable pageable);
+
+    // ============================================================
+    // FIND PRODUCTS CREATED AFTER DATE
+    // ============================================================
+    @Query("SELECT p FROM Product p WHERE p.createdAt >= :date")
+    List<Product> findProductsCreatedAfter(@Param("date") java.time.LocalDateTime date);
+
+    @Query("SELECT p FROM Product p WHERE p.createdAt >= :date ORDER BY p.createdAt DESC")
+    Page<Product> findRecentProductsSince(@Param("date") java.time.LocalDateTime date, Pageable pageable);
+
+    // ============================================================
+    // FIND TOP RATED / MOST VIEWED
+    // ============================================================
+    @Query("SELECT p FROM Product p ORDER BY p.viewCount DESC")
+    List<Product> findMostViewedProducts(Pageable pageable);
+
+    // ============================================================
+    // FIND BY ORGANIC STATUS
+    // ============================================================
+    List<Product> findByIsOrganicTrue();
+    Page<Product> findByIsOrganicTrue(Pageable pageable);
+
+    List<Product> findByIsOrganicTrueAndIsAvailableTrue();
+    Page<Product> findByIsOrganicTrueAndIsAvailableTrue(Pageable pageable);
+
+    // ============================================================
+    // SEARCH WITH MULTIPLE CRITERIA (JPQL)
+    // ============================================================
+    @Query("SELECT p FROM Product p WHERE " +
+            "(:keyword IS NULL OR LOWER(p.name) LIKE LOWER(CONCAT('%', :keyword, '%')) OR LOWER(p.description) LIKE LOWER(CONCAT('%', :keyword, '%'))) AND " +
+            "(:category IS NULL OR p.category = :category) AND " +
+            "(:productType IS NULL OR p.productType = :productType) AND " +
+            "(:saleType IS NULL OR p.saleType = :saleType) AND " +
+            "(:minPrice IS NULL OR p.price >= :minPrice) AND " +
+            "(:maxPrice IS NULL OR p.price <= :maxPrice) AND " +
+            "(:location IS NULL OR LOWER(p.location) LIKE LOWER(CONCAT('%', :location, '%'))) AND " +
+            "(:availableOnly IS NULL OR p.isAvailable = true)")
+    List<Product> searchWithFilters(
+            @Param("keyword") String keyword,
+            @Param("category") ProductCategory category,
+            @Param("productType") ProductType productType,
+            @Param("saleType") SaleType saleType,
+            @Param("minPrice") Double minPrice,
+            @Param("maxPrice") Double maxPrice,
+            @Param("location") String location,
+            @Param("availableOnly") Boolean availableOnly
+    );
+
+    @Query("SELECT p FROM Product p WHERE " +
+            "(:keyword IS NULL OR LOWER(p.name) LIKE LOWER(CONCAT('%', :keyword, '%')) OR LOWER(p.description) LIKE LOWER(CONCAT('%', :keyword, '%'))) AND " +
+            "(:category IS NULL OR p.category = :category) AND " +
+            "(:productType IS NULL OR p.productType = :productType) AND " +
+            "(:saleType IS NULL OR p.saleType = :saleType) AND " +
+            "(:minPrice IS NULL OR p.price >= :minPrice) AND " +
+            "(:maxPrice IS NULL OR p.price <= :maxPrice) AND " +
+            "(:location IS NULL OR LOWER(p.location) LIKE LOWER(CONCAT('%', :location, '%'))) AND " +
+            "(:availableOnly IS NULL OR p.isAvailable = true)")
+    Page<Product> searchWithFiltersPage(
+            @Param("keyword") String keyword,
+            @Param("category") ProductCategory category,
+            @Param("productType") ProductType productType,
+            @Param("saleType") SaleType saleType,
+            @Param("minPrice") Double minPrice,
+            @Param("maxPrice") Double maxPrice,
+            @Param("location") String location,
+            @Param("availableOnly") Boolean availableOnly,
+            Pageable pageable
+    );
 }
