@@ -25,6 +25,7 @@ public class GroupMemberServiceImpl implements GroupMemberService {
     private final UserRepository userRepository;
 
     @Override
+    @Transactional(readOnly = true)
     public boolean isMember(Long groupId, String username) {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("User not found"));
@@ -32,6 +33,7 @@ public class GroupMemberServiceImpl implements GroupMemberService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public boolean isAdmin(Long groupId, String username) {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("User not found"));
@@ -127,12 +129,14 @@ public class GroupMemberServiceImpl implements GroupMemberService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public Page<GroupMemberResponse> getGroupMembers(Long groupId, Pageable pageable) {
         return groupMemberRepository.findByChatGroupId(groupId, pageable)
                 .map(this::mapToResponse);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public Long getMemberCount(Long groupId) {
         return groupMemberRepository.countByChatGroupId(groupId);
     }

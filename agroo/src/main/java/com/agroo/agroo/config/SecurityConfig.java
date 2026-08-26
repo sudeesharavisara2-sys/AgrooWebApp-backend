@@ -35,27 +35,70 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
-                        // Public endpoints - GUEST access (no authentication required)
+                        // ============================================================
+                        // PUBLIC ENDPOINTS - GUEST access (no authentication required)
+                        // ============================================================
                         .requestMatchers("/", "/api/test").permitAll()
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/api/public/**").permitAll()
+
+                        // Product endpoints - Public view
                         .requestMatchers("/api/products/**").permitAll()
+
+                        // Post endpoints - Public view
                         .requestMatchers("/api/posts/**").permitAll()
+
+                        // Price endpoints - Public view
                         .requestMatchers("/api/prices/**").permitAll()
 
-                        // REGISTERED_USER endpoints - need authentication
+                        // Comment endpoints - Public view (GET only)
+                        .requestMatchers("/api/comments/**").permitAll()
+
+                        // Like endpoints - Public view (GET only)
+                        .requestMatchers("/api/likes/**").permitAll()
+
+                        // ============================================================
+                        // MACHINE RENTAL ENDPOINTS
+                        // ============================================================
+                        // Public - Anyone can view machine listings
+                        .requestMatchers("/api/machines/**").permitAll()
+
+                        // ============================================================
+                        // REGISTERED_USER ENDPOINTS - need authentication
+                        // ============================================================
                         .requestMatchers("/api/user/**").hasRole("REGISTERED_USER")
+
+                        // Product CRUD (create, update, delete)
                         .requestMatchers("/api/products/create/**").hasRole("REGISTERED_USER")
+                        .requestMatchers("/api/products/**").hasRole("REGISTERED_USER")
+
+                        // Post CRUD (create, update, delete)
                         .requestMatchers("/api/posts/create/**").hasRole("REGISTERED_USER")
+                        .requestMatchers("/api/posts/**").hasRole("REGISTERED_USER")
+
+                        // Comment CRUD (create, update, delete)
                         .requestMatchers("/api/comments/**").hasRole("REGISTERED_USER")
+
+                        // Like CRUD (create, delete)
                         .requestMatchers("/api/likes/**").hasRole("REGISTERED_USER")
+
+                        // Chat Group endpoints
                         .requestMatchers("/api/groups/**").hasRole("REGISTERED_USER")
                         .requestMatchers("/api/messages/**").hasRole("REGISTERED_USER")
 
-                        // ADMIN endpoints - only ADMIN role
+                        // Machine Rental CRUD (create, update, delete)
+                        .requestMatchers("/api/machines").hasRole("REGISTERED_USER")
+                        .requestMatchers("/api/machines/*").hasRole("REGISTERED_USER")
+                        .requestMatchers("/api/machines/images/**").hasRole("REGISTERED_USER")
+
+                        // ============================================================
+                        // ADMIN ENDPOINTS - only ADMIN role
+                        // ============================================================
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
 
+                        // ============================================================
                         // All other requests need authentication
+                        // ============================================================
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
