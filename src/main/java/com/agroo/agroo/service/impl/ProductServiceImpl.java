@@ -208,7 +208,7 @@ public class ProductServiceImpl implements ProductService {
     }
 
     // ============================================================
-    // DELETE
+    // DELETE (Safely Handled)
     // ============================================================
     @Override
     @Transactional
@@ -220,9 +220,15 @@ public class ProductServiceImpl implements ProductService {
             throw new AccessDeniedException("You don't have permission to delete this product");
         }
 
-        // Delete images from storage
-        for (ProductImage image : product.getImages()) {
-            fileStorageService.deleteFile(image.getImageUrl());
+        // Delete images from storage safely using try-catch to prevent transaction rollbacks on missing files
+        if (product.getImages() != null) {
+            for (ProductImage image : product.getImages()) {
+                try {
+                    fileStorageService.deleteFile(image.getImageUrl());
+                } catch (Exception e) {
+                    System.err.println("Warning: Could not delete image file from storage: " + e.getMessage());
+                }
+            }
         }
 
         productRepository.delete(product);
@@ -239,14 +245,23 @@ public class ProductServiceImpl implements ProductService {
             throw new AccessDeniedException("You don't have permission to delete this image");
         }
 
-        fileStorageService.deleteFile(image.getImageUrl());
+        try {
+            fileStorageService.deleteFile(image.getImageUrl());
+        } catch (Exception e) {
+            System.err.println("Warning: Could not delete image file from storage: " + e.getMessage());
+        }
+
         productImageRepository.delete(image);
 
         // If deleted image was primary, set another as primary
-        if (image.getIsPrimary() && !product.getImages().isEmpty()) {
-            ProductImage firstImage = product.getImages().get(0);
-            firstImage.setIsPrimary(true);
-            productImageRepository.save(firstImage);
+        if (image.getIsPrimary() && product.getImages() != null && !product.getImages().isEmpty()) {
+            product.getImages().stream()
+                    .filter(img -> !img.getId().equals(imageId))
+                    .findFirst()
+                    .ifPresent(firstImage -> {
+                        firstImage.setIsPrimary(true);
+                        productImageRepository.save(firstImage);
+                    });
         }
     }
 
@@ -279,7 +294,6 @@ public class ProductServiceImpl implements ProductService {
     }
 
     private ProductResponse mapToResponse(Product product) {
-        // Force initialize the farmer proxy
         User farmer = product.getFarmer();
 
         return ProductResponse.builder()
@@ -310,7 +324,7 @@ public class ProductServiceImpl implements ProductService {
                         .phoneNumber(farmer.getPhoneNumber())
                         .profileImageUrl(farmer.getProfileImageUrl())
                         .build())
-                .images(product.getImages().stream()
+                .images(product.getImages() == null ? new ArrayList<>() : product.getImages().stream()
                         .map(img -> ProductResponse.ProductImageInfo.builder()
                                 .id(img.getId())
                                 .imageUrl(img.getImageUrl())
