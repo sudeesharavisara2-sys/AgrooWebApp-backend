@@ -15,30 +15,48 @@ import java.util.List;
 @Repository
 public interface MachineRentalRepository extends JpaRepository<MachineRental, Long> {
 
-    // Find by owner
+    // ============================================================
+    // FIND BY OWNER
+    // ============================================================
     Page<MachineRental> findByOwnerId(Long ownerId, Pageable pageable);
     List<MachineRental> findByOwnerId(Long ownerId);
 
-    // Find by machine type
+    // ============================================================
+    // FIND BY MACHINE TYPE
+    // ============================================================
     Page<MachineRental> findByMachineType(MachineType machineType, Pageable pageable);
     List<MachineRental> findByMachineType(MachineType machineType);
 
-    // Find by status
+    // ============================================================
+    // FIND BY STATUS
+    // ============================================================
     Page<MachineRental> findByStatus(MachineStatus status, Pageable pageable);
     List<MachineRental> findByStatus(MachineStatus status);
 
-    // Find available machines
+    // ============================================================
+    // FIND AVAILABLE MACHINES
+    // ============================================================
     Page<MachineRental> findByIsAvailableTrue(Pageable pageable);
     List<MachineRental> findByIsAvailableTrue();
 
-    // Search by name - JPQL
+    // ============================================================
+    // COUNT METHODS
+    // ============================================================
+    Long countByOwnerId(Long ownerId);
+    Long countByIsAvailableTrue();  // ✅ ADD THIS METHOD
+
+    // ============================================================
+    // SEARCH BY NAME - JPQL
+    // ============================================================
     @Query("SELECT m FROM MachineRental m WHERE LOWER(m.name) LIKE LOWER(CONCAT('%', :keyword, '%'))")
     Page<MachineRental> searchByName(@Param("keyword") String keyword, Pageable pageable);
 
     @Query("SELECT m FROM MachineRental m WHERE LOWER(m.name) LIKE LOWER(CONCAT('%', :keyword, '%'))")
     List<MachineRental> searchByName(@Param("keyword") String keyword);
 
-    // Search by location - JPQL
+    // ============================================================
+    // SEARCH BY LOCATION - JPQL
+    // ============================================================
     @Query("SELECT m FROM MachineRental m WHERE LOWER(m.location) LIKE LOWER(CONCAT('%', :location, '%'))")
     Page<MachineRental> searchByLocation(@Param("location") String location, Pageable pageable);
 
@@ -46,7 +64,7 @@ public interface MachineRentalRepository extends JpaRepository<MachineRental, Lo
     List<MachineRental> searchByLocation(@Param("location") String location);
 
     // ============================================================
-    // ADVANCED SEARCH - JPQL ONLY (NO NATIVE QUERIES!)
+    // ADVANCED SEARCH - JPQL
     // ============================================================
     @Query("SELECT m FROM MachineRental m WHERE " +
             "(:machineType IS NULL OR m.machineType = :machineType) AND " +
@@ -64,10 +82,9 @@ public interface MachineRentalRepository extends JpaRepository<MachineRental, Lo
             Pageable pageable
     );
 
-    // Count by owner
-    Long countByOwnerId(Long ownerId);
-
-    // Find most viewed
+    // ============================================================
+    // FIND MOST VIEWED
+    // ============================================================
     @Query("SELECT m FROM MachineRental m ORDER BY m.viewCount DESC")
     Page<MachineRental> findMostViewed(Pageable pageable);
 }

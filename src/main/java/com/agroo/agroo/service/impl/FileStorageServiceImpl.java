@@ -21,6 +21,9 @@ public class FileStorageServiceImpl implements FileStorageService {
     @Value("${file.upload-dir:uploads/products}")
     private String uploadDir;
 
+    @Value("${file.base-url:http://localhost:8081/uploads}")
+    private String baseUrl;
+
     private static final List<String> ALLOWED_EXTENSIONS = List.of(".jpg", ".jpeg", ".png", ".gif", ".webp");
     private static final long MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
@@ -29,23 +32,23 @@ public class FileStorageServiceImpl implements FileStorageService {
         validateFile(file);
 
         try {
+            // Create upload directory if it doesn't exist
             Path uploadPath = Paths.get(uploadDir);
             if (!Files.exists(uploadPath)) {
                 Files.createDirectories(uploadPath);
             }
 
+            // Generate unique filename
             String originalFilename = file.getOriginalFilename();
             String fileExtension = originalFilename.substring(originalFilename.lastIndexOf("."));
             String filename = UUID.randomUUID().toString() + fileExtension;
 
+            // Save file
             Path filePath = uploadPath.resolve(filename);
             Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
 
-            // Extract the subfolder name (e.g., "products") dynamically to prepend it
-            String folderName = Paths.get(uploadDir).getFileName().toString();
-
-            // Returns a relative path like "products/uuid-filename.jpg"
-            return folderName + "/" + filename;
+            // Return URL
+            return baseUrl + "/" + filename;
 
         } catch (IOException e) {
             throw new FileStorageException("Failed to store file: " + e.getMessage());
@@ -61,27 +64,13 @@ public class FileStorageServiceImpl implements FileStorageService {
         return urls;
     }
 
-    // අලුතින් එකතු කළ Method එක: සම්පූර්ණ URL එකෙන් File නම පමණක් වෙන් කර ගැනීමට
-    private String extractRelativePath(String fileUrl) {
-        if (fileUrl == null) return null;
-        // URL එකක් ආවොත්, '/uploads/' වලින් පස්සේ තියෙන ටික විතරක් ගන්නවා
-        if (fileUrl.startsWith("http")) {
-            int index = fileUrl.indexOf("/uploads/");
-            if (index != -1) {
-                return fileUrl.substring(index + "/uploads/".length());
-            }
-        }
-        return fileUrl; // කලින්ම හරි විදිහට (උදා: products/file.png) ආවොත් ඒකම යවනවා
-    }
-
     @Override
     public void deleteFile(String fileUrl) {
         try {
-            String relativePath = extractRelativePath(fileUrl);
-            if (relativePath != null) {
-                Path filePath = Paths.get("uploads").resolve(relativePath);
-                Files.deleteIfExists(filePath);
-            }
+            // Extract filename from URL
+            String filename = fileUrl.substring(fileUrl.lastIndexOf("/") + 1);
+            Path filePath = Paths.get(uploadDir).resolve(filename);
+            Files.deleteIfExists(filePath);
         } catch (IOException e) {
             throw new FileStorageException("Failed to delete file: " + e.getMessage());
         }
@@ -89,7 +78,6 @@ public class FileStorageServiceImpl implements FileStorageService {
 
     @Override
     public void deleteFiles(List<String> fileUrls) {
-        if (fileUrls == null) return;
         for (String fileUrl : fileUrls) {
             deleteFile(fileUrl);
         }
@@ -98,12 +86,9 @@ public class FileStorageServiceImpl implements FileStorageService {
     @Override
     public boolean fileExists(String fileUrl) {
         try {
-            String relativePath = extractRelativePath(fileUrl);
-            if (relativePath != null) {
-                Path filePath = Paths.get("uploads").resolve(relativePath);
-                return Files.exists(filePath);
-            }
-            return false;
+            String filename = fileUrl.substring(fileUrl.lastIndexOf("/") + 1);
+            Path filePath = Paths.get(uploadDir).resolve(filename);
+            return Files.exists(filePath);
         } catch (Exception e) {
             return false;
         }
@@ -119,11 +104,13 @@ public class FileStorageServiceImpl implements FileStorageService {
             throw new FileStorageException("File has no name");
         }
 
+        // Check file extension
         String extension = filename.substring(filename.lastIndexOf(".")).toLowerCase();
         if (!ALLOWED_EXTENSIONS.contains(extension)) {
             throw new FileStorageException("File type not allowed. Allowed: " + ALLOWED_EXTENSIONS);
         }
 
+        // Check file size
         if (file.getSize() > MAX_FILE_SIZE) {
             throw new FileStorageException("File too large. Max size: " + (MAX_FILE_SIZE / 1024 / 1024) + "MB");
         }

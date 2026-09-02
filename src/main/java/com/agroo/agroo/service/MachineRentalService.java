@@ -11,10 +11,14 @@ import org.springframework.web.multipart.MultipartFile;
 import java.util.List;
 
 public interface MachineRentalService {
-    // Create
+    // ============================================================
+    // CREATE
+    // ============================================================
     MachineRentalResponse createMachineRental(MachineRentalRequest request, List<MultipartFile> images, String username);
 
-    // Read
+    // ============================================================
+    // READ (Public)
+    // ============================================================
     MachineRentalResponse getMachineRental(Long id);
     Page<MachineRentalResponse> getAllMachineRentals(Pageable pageable);
     Page<MachineRentalResponse> getMachineRentalsByOwner(Long ownerId, Pageable pageable);
@@ -24,12 +28,16 @@ public interface MachineRentalService {
     Page<MachineRentalResponse> advancedSearch(MachineType machineType, MachineStatus status,
                                                Double minPrice, Double maxPrice, String location, Pageable pageable);
 
-    // Update
+    // ============================================================
+    // UPDATE (Authenticated - Owner only)
+    // ============================================================
     MachineRentalResponse updateMachineRental(Long id, MachineRentalRequest request, List<MultipartFile> images, String username);
     MachineRentalResponse toggleAvailability(Long id, String username);
     MachineRentalResponse setPrimaryImage(Long imageId, String username);
 
-    // Delete
+    // ============================================================
+    // DELETE (Authenticated - Owner only)
+    // ============================================================
     void deleteMachineRental(Long id, String username);
     void deleteImage(Long imageId, String username);
 }
