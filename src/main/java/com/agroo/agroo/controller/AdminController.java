@@ -248,6 +248,15 @@ public class AdminController {
         return ResponseEntity.ok(response);
     }
 
+    @DeleteMapping("/machines/{machineId}")
+    public ResponseEntity<Map<String, String>> deleteMachine(@PathVariable Long machineId) {
+        adminService.deleteMachine(machineId);
+        Map<String, String> response = new HashMap<>();
+        response.put("success", "true");
+        response.put("message", "Machine rental deleted successfully");
+        return ResponseEntity.ok(response);
+    }
+
     @DeleteMapping("/posts/{postId}")
     public ResponseEntity<Map<String, String>> deletePost(@PathVariable Long postId) {
         adminService.deletePost(postId);
@@ -297,6 +306,11 @@ public class AdminController {
     @GetMapping("/stats/products")
     public ResponseEntity<Map<String, Long>> getProductStats() {
         return ResponseEntity.ok(adminService.getProductStats());
+    }
+
+    @GetMapping("/stats/machines")
+    public ResponseEntity<Map<String, Long>> getMachineStats() {
+        return ResponseEntity.ok(adminService.getMachineStats());
     }
 
     @GetMapping("/stats/posts")

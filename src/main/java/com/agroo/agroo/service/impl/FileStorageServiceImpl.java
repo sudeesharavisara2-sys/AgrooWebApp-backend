@@ -67,6 +67,7 @@ public class FileStorageServiceImpl implements FileStorageService {
     @Override
     public void deleteFile(String fileUrl) {
         try {
+            // Extract filename from URL
             String filename = fileUrl.substring(fileUrl.lastIndexOf("/") + 1);
             Path filePath = Paths.get(uploadDir).resolve(filename);
             Files.deleteIfExists(filePath);

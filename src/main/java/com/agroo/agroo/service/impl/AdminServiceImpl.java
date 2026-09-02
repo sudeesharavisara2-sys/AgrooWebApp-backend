@@ -4,6 +4,7 @@ import com.agroo.agroo.model.*;
 import com.agroo.agroo.model.enums.Role;
 import com.agroo.agroo.repository.*;
 import com.agroo.agroo.service.AdminService;
+import com.agroo.agroo.service.FileStorageService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -19,11 +20,16 @@ public class AdminServiceImpl implements AdminService {
 
     private final UserRepository userRepository;
     private final ProductRepository productRepository;
+    private final MachineRentalRepository machineRentalRepository;
     private final PostRepository postRepository;
     private final CommentRepository commentRepository;
     private final ChatGroupRepository chatGroupRepository;
     private final ActivityLogRepository activityLogRepository;
+    private final FileStorageService fileStorageService;
 
+    // ============================================================
+    // USER MANAGEMENT
+    // ============================================================
     @Override
     public Page<User> getAllUsers(Pageable pageable) {
         return userRepository.findAll(pageable);
@@ -31,7 +37,6 @@ public class AdminServiceImpl implements AdminService {
 
     @Override
     public Page<User> searchUsers(String keyword, Pageable pageable) {
-        // Simple search implementation - can be enhanced
         return userRepository.findByUsernameContainingIgnoreCaseOrEmailContainingIgnoreCase(keyword, keyword, pageable);
     }
 
@@ -80,12 +85,35 @@ public class AdminServiceImpl implements AdminService {
         userRepository.delete(user);
     }
 
+    // ============================================================
+    // CONTENT MANAGEMENT - DELETE
+    // ============================================================
     @Override
     @Transactional
     public void deleteProduct(Long productId) {
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new RuntimeException("Product not found"));
+
+        // Delete images from storage
+        for (ProductImage image : product.getImages()) {
+            fileStorageService.deleteFile(image.getImageUrl());
+        }
+
         productRepository.delete(product);
+    }
+
+    @Override
+    @Transactional
+    public void deleteMachine(Long machineId) {
+        MachineRental machine = machineRentalRepository.findById(machineId)
+                .orElseThrow(() -> new RuntimeException("Machine rental not found"));
+
+        // Delete images from storage
+        for (MachineImage image : machine.getImages()) {
+            fileStorageService.deleteFile(image.getImageUrl());
+        }
+
+        machineRentalRepository.delete(machine);
     }
 
     @Override
@@ -93,6 +121,15 @@ public class AdminServiceImpl implements AdminService {
     public void deletePost(Long postId) {
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new RuntimeException("Post not found"));
+
+        // Delete media from storage
+        if (post.getImageUrl() != null) {
+            fileStorageService.deleteFile(post.getImageUrl());
+        }
+        if (post.getVideoUrl() != null) {
+            fileStorageService.deleteFile(post.getVideoUrl());
+        }
+
         postRepository.delete(post);
     }
 
@@ -109,15 +146,23 @@ public class AdminServiceImpl implements AdminService {
     public void deleteGroup(Long groupId) {
         ChatGroup group = chatGroupRepository.findById(groupId)
                 .orElseThrow(() -> new RuntimeException("Group not found"));
+
+        // Soft delete (mark as inactive)
         group.setIsActive(false);
         chatGroupRepository.save(group);
     }
 
+    // ============================================================
+    // ACTIVITY LOGS
+    // ============================================================
     @Override
     public Page<ActivityLog> getActivityLogs(Pageable pageable) {
         return activityLogRepository.findAllByOrderByCreatedAtDesc(pageable);
     }
 
+    // ============================================================
+    // STATISTICS
+    // ============================================================
     @Override
     public Map<String, Long> getUserStats() {
         Map<String, Long> stats = new HashMap<>();
@@ -132,6 +177,14 @@ public class AdminServiceImpl implements AdminService {
         Map<String, Long> stats = new HashMap<>();
         stats.put("total", productRepository.count());
         stats.put("available", productRepository.countByIsAvailableTrue());
+        return stats;
+    }
+
+    @Override
+    public Map<String, Long> getMachineStats() {
+        Map<String, Long> stats = new HashMap<>();
+        stats.put("total", machineRentalRepository.count());
+        stats.put("available", machineRentalRepository.countByIsAvailableTrue());  // ✅ Now works
         return stats;
     }
 
