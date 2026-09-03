@@ -21,11 +21,8 @@ public class FileStorageServiceImpl implements FileStorageService {
     @Value("${file.upload-dir:uploads/products}")
     private String uploadDir;
 
-    @Value("${file.base-url:http://localhost:8081/uploads}")
-    private String baseUrl;
-
     private static final List<String> ALLOWED_EXTENSIONS = List.of(".jpg", ".jpeg", ".png", ".gif", ".webp");
-    private static final long MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+    private static final long MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
 
     @Override
     public String storeFile(MultipartFile file) {
@@ -36,6 +33,7 @@ public class FileStorageServiceImpl implements FileStorageService {
             Path uploadPath = Paths.get(uploadDir);
             if (!Files.exists(uploadPath)) {
                 Files.createDirectories(uploadPath);
+                System.out.println("📁 Created upload directory: " + uploadPath.toAbsolutePath());
             }
 
             // Generate unique filename
@@ -47,8 +45,14 @@ public class FileStorageServiceImpl implements FileStorageService {
             Path filePath = uploadPath.resolve(filename);
             Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
 
-            // Return URL
-            return baseUrl + "/" + filename;
+            // Return URL - This will be stored in the database
+            // Example: /uploads/products/filename.webp
+            String fileUrl = "/uploads/products/" + filename;
+
+            System.out.println("✅ File stored: " + fileUrl);
+            System.out.println("📁 File path: " + filePath.toAbsolutePath());
+
+            return fileUrl;
 
         } catch (IOException e) {
             throw new FileStorageException("Failed to store file: " + e.getMessage());
@@ -67,10 +71,18 @@ public class FileStorageServiceImpl implements FileStorageService {
     @Override
     public void deleteFile(String fileUrl) {
         try {
+            if (fileUrl == null || fileUrl.isEmpty()) {
+                return;
+            }
+
             // Extract filename from URL
             String filename = fileUrl.substring(fileUrl.lastIndexOf("/") + 1);
             Path filePath = Paths.get(uploadDir).resolve(filename);
-            Files.deleteIfExists(filePath);
+
+            if (Files.exists(filePath)) {
+                Files.delete(filePath);
+                System.out.println("🗑️ File deleted: " + filePath.toAbsolutePath());
+            }
         } catch (IOException e) {
             throw new FileStorageException("Failed to delete file: " + e.getMessage());
         }
@@ -86,6 +98,9 @@ public class FileStorageServiceImpl implements FileStorageService {
     @Override
     public boolean fileExists(String fileUrl) {
         try {
+            if (fileUrl == null || fileUrl.isEmpty()) {
+                return false;
+            }
             String filename = fileUrl.substring(fileUrl.lastIndexOf("/") + 1);
             Path filePath = Paths.get(uploadDir).resolve(filename);
             return Files.exists(filePath);
