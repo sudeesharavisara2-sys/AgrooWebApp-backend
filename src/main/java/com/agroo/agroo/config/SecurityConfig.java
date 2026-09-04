@@ -40,7 +40,7 @@ public class SecurityConfig {
                         .requestMatchers("/uploads/**", "/images/**", "/static/**").permitAll()
 
                         // General Public Endpoints
-                        .requestMatchers("/", "/api/test", "/api/auth/**", "/api/public/**").permitAll()
+                        .requestMatchers("/", "/api/test", "/api/auth/**", "/api/public/**", "/api/chat/**").permitAll()
 
                         // WebSocket Endpoints
                         .requestMatchers("/ws/**", "/ws", "/ws/info").permitAll()
@@ -73,17 +73,41 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(Arrays.asList(
-                "http://localhost:3000",
-                "http://localhost:4200",
-                "http://localhost:5173",
-                "http://localhost:5174",
-                "http://127.0.0.1:3000",
-                "http://127.0.0.1:5173",
-                "http://localhost:5500"
+
+        // Allow all origins that your frontend might use
+        configuration.setAllowedOriginPatterns(Arrays.asList(
+                "http://localhost:*",
+                "http://127.0.0.1:*",
+                "http://192.168.*.*:*",
+                "http://*.agroo.lk"
         ));
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
-        configuration.setAllowedHeaders(Arrays.asList("*"));
+
+        // Allow all methods
+        configuration.setAllowedMethods(Arrays.asList(
+                "GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH", "HEAD"
+        ));
+
+        // Allow all headers
+        configuration.setAllowedHeaders(Arrays.asList(
+                "Authorization",
+                "Content-Type",
+                "Accept",
+                "X-Requested-With",
+                "Origin",
+                "Access-Control-Request-Method",
+                "Access-Control-Request-Headers",
+                "Cache-Control",
+                "Pragma",
+                "Expires"
+        ));
+
+        // Expose headers for frontend access
+        configuration.setExposedHeaders(Arrays.asList(
+                "Authorization",
+                "Content-Disposition",
+                "Content-Type"
+        ));
+
         configuration.setAllowCredentials(true);
         configuration.setMaxAge(3600L);
 
