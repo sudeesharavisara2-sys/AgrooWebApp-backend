@@ -37,6 +37,11 @@ public class User implements UserDetails {
     private String phoneNumber;
     private String address;
     private String district;
+
+    // ✅ ADD THIS FIELD - For weather alerts by location
+    @Column(name = "location")
+    private String location;  // e.g., "Colombo", "Kandy", "Galle"
+
     private String profileImageUrl;
     private String bio;
 
@@ -78,6 +83,11 @@ public class User implements UserDetails {
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return List.of(new SimpleGrantedAuthority("ROLE_" + role.name()));
+    }
+
+    @Override
+    public String getUsername() {
+        return username;
     }
 
     @Override

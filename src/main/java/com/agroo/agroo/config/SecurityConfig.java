@@ -36,16 +36,29 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
-                        // Static Resources & Uploads Access
+                        // ============================================================
+                        // STATIC RESOURCES & UPLOADS
+                        // ============================================================
                         .requestMatchers("/uploads/**", "/images/**", "/static/**").permitAll()
 
-                        // General Public Endpoints
+                        // ============================================================
+                        // WEATHER ALERT SYSTEM - PUBLIC ACCESS ✅ NEW
+                        // ============================================================
+                        .requestMatchers("/api/weather/**").permitAll()
+
+                        // ============================================================
+                        // GENERAL PUBLIC ENDPOINTS
+                        // ============================================================
                         .requestMatchers("/", "/api/test", "/api/auth/**", "/api/public/**", "/api/chat/**").permitAll()
 
-                        // WebSocket Endpoints
+                        // ============================================================
+                        // WEBSOCKET ENDPOINTS
+                        // ============================================================
                         .requestMatchers("/ws/**", "/ws", "/ws/info").permitAll()
 
-                        // Public Views (Only GET requests are public for products, posts, machines, etc.)
+                        // ============================================================
+                        // PUBLIC VIEWS (GET requests only)
+                        // ============================================================
                         .requestMatchers(HttpMethod.GET, "/api/products/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/posts/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/prices/**").permitAll()
@@ -53,14 +66,18 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/likes/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/machines/**").permitAll()
 
-                        // Admin Endpoints
+                        // ============================================================
+                        // ADMIN ENDPOINTS
+                        // ============================================================
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
 
-                        // Authenticated Actions (Create, Update, Delete for Users)
+                        // ============================================================
+                        // AUTHENTICATED ACTIONS
+                        // ============================================================
                         .requestMatchers("/api/user/**").hasAnyRole("REGISTERED_USER", "ADMIN")
                         .requestMatchers("/api/groups/**", "/api/messages/**").hasAnyRole("REGISTERED_USER", "ADMIN")
 
-                        // All other non-GET endpoints or custom requests require authentication
+                        // All other requests require authentication
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))

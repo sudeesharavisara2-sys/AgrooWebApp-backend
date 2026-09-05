@@ -6,15 +6,22 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 @Repository
 public interface UserRepository extends JpaRepository<User, Long> {
+
     Optional<User> findByUsername(String username);
     Optional<User> findByEmail(String email);
     Boolean existsByUsername(String username);
     Boolean existsByEmail(String email);
     long countByIsActiveTrue();
     long countByIsVerifiedTrue();
-    Page<User> findByUsernameContainingIgnoreCaseOrEmailContainingIgnoreCase(String username, String email, Pageable pageable);
+    Page<User> findByUsernameContainingIgnoreCaseOrEmailContainingIgnoreCase(
+            String username, String email, Pageable pageable);
+
+    // ✅ These methods now work because User has 'location' field
+    List<User> findByLocationAndIsActiveTrueAndIsVerifiedTrue(String location);
+    List<User> findByIsActiveTrueAndIsVerifiedTrue();
 }
