@@ -46,7 +46,21 @@ public class WeatherServiceImpl implements WeatherService {
             WeatherData weather = fetchWeatherData(location);
             return createAlertIfNeeded(location, weather);
         } catch (Exception e) {
-            System.err.println("Error checking weather: " + e.getMessage());
+            System.err.println("❌ Error checking weather for " + location + ": " + e.getMessage());
+            return null;
+        }
+    }
+
+    // ✅ NEW: Get weather data only (no alert creation)
+    public WeatherData getWeatherDataOnly(String location) {
+        if (apiKey == null || apiKey.isEmpty()) {
+            System.out.println("⚠️ Weather API key not configured.");
+            return null;
+        }
+        try {
+            return fetchWeatherData(location);
+        } catch (Exception e) {
+            System.err.println("❌ Error fetching weather for " + location + ": " + e.getMessage());
             return null;
         }
     }
@@ -89,7 +103,7 @@ public class WeatherServiceImpl implements WeatherService {
                 checkWeatherAndCreateAlert(location);
                 Thread.sleep(1000);
             } catch (Exception e) {
-                System.err.println("Error checking " + location + ": " + e.getMessage());
+                System.err.println("❌ Error checking " + location + ": " + e.getMessage());
             }
         }
     }
@@ -101,20 +115,39 @@ public class WeatherServiceImpl implements WeatherService {
     }
 
     private WeatherData fetchWeatherData(String location) {
-        String url = String.format("%s?q=%s,Sri Lanka&appid=%s&units=metric", apiUrl, location, apiKey);
-        String response = restTemplate.getForObject(url, String.class);
+        String encodedLocation = location.replace(" ", "%20");
+        String[] suffixes = {"Sri%20Lanka", "LK", ""};
 
-        try {
-            JsonNode root = objectMapper.readTree(response);
-            WeatherData weather = new WeatherData();
-            weather.temperature = root.path("main").path("temp").asDouble();
-            weather.humidity = root.path("main").path("humidity").asDouble();
-            weather.windSpeed = root.path("wind").path("speed").asDouble();
-            weather.rainfall = root.path("rain").path("1h").asDouble(0.0);
-            return weather;
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to parse weather data: " + e.getMessage());
+        for (String suffix : suffixes) {
+            try {
+                String url;
+                if (suffix.isEmpty()) {
+                    url = String.format("%s?q=%s&appid=%s&units=metric", apiUrl, encodedLocation, apiKey);
+                } else {
+                    url = String.format("%s?q=%s,%s&appid=%s&units=metric", apiUrl, encodedLocation, suffix, apiKey);
+                }
+
+                System.out.println("🌤️ Trying: " + url);
+                String response = restTemplate.getForObject(url, String.class);
+                JsonNode root = objectMapper.readTree(response);
+
+                if (root.has("cod") && root.get("cod").asInt() == 200) {
+                    WeatherData weather = new WeatherData();
+                    weather.temperature = root.path("main").path("temp").asDouble();
+                    weather.humidity = root.path("main").path("humidity").asDouble();
+                    weather.windSpeed = root.path("wind").path("speed").asDouble();
+                    weather.rainfall = root.path("rain").path("1h").asDouble(0.0);
+
+                    System.out.println("✅ Weather data received for: " + location +
+                            " (Temp: " + String.format("%.1f", weather.temperature) + "°C)");
+                    return weather;
+                }
+            } catch (Exception e) {
+                System.err.println("❌ Failed with suffix '" + suffix + "': " + e.getMessage());
+            }
         }
+
+        throw new RuntimeException("Location not found: " + location);
     }
 
     private WeatherAlert createAlertIfNeeded(String location, WeatherData weather) {
@@ -125,26 +158,38 @@ public class WeatherServiceImpl implements WeatherService {
         if (weather.rainfall > 10.0) {
             alertType = "HEAVY_RAIN";
             severity = "WARNING";
-            message = "🌧️ Heavy rain warning for " + location + "! Rainfall: " + weather.rainfall + " mm.";
+            message = "🌧️ Heavy rain warning for " + location + "! Rainfall: " + String.format("%.1f", weather.rainfall) + " mm.";
         } else if (weather.windSpeed > 30.0) {
             alertType = "HIGH_WIND";
             severity = "WARNING";
-            message = "💨 High wind warning for " + location + "! Wind speed: " + weather.windSpeed + " km/h.";
+            message = "💨 High wind warning for " + location + "! Wind speed: " + String.format("%.1f", weather.windSpeed) + " km/h.";
         } else if (weather.temperature > 35.0) {
             alertType = "EXTREME_HEAT";
             severity = "WARNING";
-            message = "🌡️ Extreme heat warning for " + location + "! Temperature: " + weather.temperature + "°C.";
+            message = "🌡️ Extreme heat warning for " + location + "! Temperature: " + String.format("%.1f", weather.temperature) + "°C.";
         } else if (weather.rainfall < 0.5 && weather.humidity < 30) {
             alertType = "DROUGHT";
             severity = "INFO";
-            message = "🏜️ Drought conditions in " + location + ". Consider irrigation.";
+            message = "🏜️ Drought conditions in " + location + ". Humidity: " + String.format("%.1f", weather.humidity) + "%. Consider irrigation.";
         } else if (weather.rainfall > 5.0 && weather.windSpeed > 20.0) {
             alertType = "STORM";
             severity = "CRITICAL";
-            message = "🌪️ Storm warning for " + location + "! Take immediate precautions.";
+            message = "🌪️ Storm warning for " + location + "! Rainfall: " + String.format("%.1f", weather.rainfall) + "mm, Wind: " + String.format("%.1f", weather.windSpeed) + " km/h.";
         }
 
-        if (alertType == null) return null;
+        if (alertType == null) {
+            System.out.println("✅ No alert needed for " + location + " - Weather is normal");
+            return null;
+        }
+
+        // ✅ Check if similar active alert already exists
+        List<WeatherAlert> existingAlerts = weatherAlertRepository.findByLocationContainingIgnoreCase(location);
+        for (WeatherAlert existing : existingAlerts) {
+            if (existing.getAlertType().equals(alertType) && existing.getIsActive()) {
+                System.out.println("⚠️ Alert already exists for " + location + ": " + alertType);
+                return null;
+            }
+        }
 
         WeatherAlert alert = new WeatherAlert();
         alert.setLocation(location);
@@ -159,13 +204,25 @@ public class WeatherServiceImpl implements WeatherService {
         alert.setIsSent(false);
         alert.setExpiresAt(LocalDateTime.now().plusHours(24));
 
+        System.out.println("✅ New alert created for " + location + ": " + alertType);
         return weatherAlertRepository.save(alert);
     }
 
-    private static class WeatherData {
-        double temperature;
-        double humidity;
-        double windSpeed;
-        double rainfall;
+    // ✅ Make WeatherData public so it can be used by controller
+    public static class WeatherData {
+        private double temperature;
+        private double humidity;
+        private double windSpeed;
+        private double rainfall;
+
+        // ✅ Getters and setters for serialization
+        public double getTemperature() { return temperature; }
+        public void setTemperature(double temperature) { this.temperature = temperature; }
+        public double getHumidity() { return humidity; }
+        public void setHumidity(double humidity) { this.humidity = humidity; }
+        public double getWindSpeed() { return windSpeed; }
+        public void setWindSpeed(double windSpeed) { this.windSpeed = windSpeed; }
+        public double getRainfall() { return rainfall; }
+        public void setRainfall(double rainfall) { this.rainfall = rainfall; }
     }
 }

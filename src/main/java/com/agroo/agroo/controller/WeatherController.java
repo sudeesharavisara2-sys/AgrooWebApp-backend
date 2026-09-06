@@ -3,12 +3,15 @@ package com.agroo.agroo.controller;
 import com.agroo.agroo.model.WeatherAlert;
 import com.agroo.agroo.repository.WeatherAlertRepository;
 import com.agroo.agroo.service.WeatherService;
+import com.agroo.agroo.service.impl.WeatherServiceImpl;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/weather")
@@ -16,7 +19,7 @@ import java.util.List;
 public class WeatherController {
 
     private final WeatherService weatherService;
-    private final WeatherAlertRepository weatherAlertRepository;  // ✅ Add this
+    private final WeatherAlertRepository weatherAlertRepository;
 
     @GetMapping("/alerts")
     public ResponseEntity<List<WeatherAlert>> getAllAlerts() {
@@ -33,13 +36,31 @@ public class WeatherController {
         return ResponseEntity.ok(weatherService.getAlert(id));
     }
 
+    // ✅ UPDATED: Always returns weather data + alert info
     @PostMapping("/check/{location}")
-    public ResponseEntity<WeatherAlert> checkWeather(@PathVariable String location) {
-        WeatherAlert alert = weatherService.checkWeatherAndCreateAlert(location);
-        if (alert == null) {
+    public ResponseEntity<?> checkWeather(@PathVariable String location) {
+        // ✅ Get weather data first (always returns data if available)
+        WeatherServiceImpl.WeatherData weatherData = weatherService.getWeatherDataOnly(location);
+
+        if (weatherData == null) {
             return ResponseEntity.noContent().build();
         }
-        return ResponseEntity.ok(alert);
+
+        // ✅ Create alert if needed (email system unchanged)
+        WeatherAlert alert = weatherService.checkWeatherAndCreateAlert(location);
+
+        // ✅ Return combined response with weather data + alert info
+        Map<String, Object> response = new HashMap<>();
+        response.put("location", location);
+        response.put("temperature", weatherData.getTemperature());
+        response.put("humidity", weatherData.getHumidity());
+        response.put("windSpeed", weatherData.getWindSpeed());
+        response.put("rainfall", weatherData.getRainfall());
+        response.put("alert", alert);
+        response.put("hasAlert", alert != null);
+        response.put("timestamp", LocalDateTime.now());
+
+        return ResponseEntity.ok(response);
     }
 
     @PostMapping("/check/all")

@@ -42,9 +42,14 @@ public class SecurityConfig {
                         .requestMatchers("/uploads/**", "/images/**", "/static/**").permitAll()
 
                         // ============================================================
-                        // WEATHER ALERT SYSTEM - PUBLIC ACCESS ✅ NEW
+                        // WEATHER SYSTEM - PUBLIC ACCESS
                         // ============================================================
+                        // ✅ Weather data - Anyone can view (No login required)
                         .requestMatchers("/api/weather/**").permitAll()
+
+                        // ⚠️ Weather Alerts - Only logged-in users receive emails
+                        // The email sending is handled in EmailNotificationServiceImpl
+                        // which checks for authenticated user
 
                         // ============================================================
                         // GENERAL PUBLIC ENDPOINTS
