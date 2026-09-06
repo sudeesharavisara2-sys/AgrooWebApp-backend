@@ -36,16 +36,34 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
-                        // Static Resources & Uploads Access
+                        // ============================================================
+                        // STATIC RESOURCES & UPLOADS
+                        // ============================================================
                         .requestMatchers("/uploads/**", "/images/**", "/static/**").permitAll()
 
-                        // General Public Endpoints
-                        .requestMatchers("/", "/api/test", "/api/auth/**", "/api/public/**").permitAll()
+                        // ============================================================
+                        // WEATHER SYSTEM - PUBLIC ACCESS
+                        // ============================================================
+                        // ✅ Weather data - Anyone can view (No login required)
+                        .requestMatchers("/api/weather/**").permitAll()
 
-                        // WebSocket Endpoints
+                        // ⚠️ Weather Alerts - Only logged-in users receive emails
+                        // The email sending is handled in EmailNotificationServiceImpl
+                        // which checks for authenticated user
+
+                        // ============================================================
+                        // GENERAL PUBLIC ENDPOINTS
+                        // ============================================================
+                        .requestMatchers("/", "/api/test", "/api/auth/**", "/api/public/**", "/api/chat/**").permitAll()
+
+                        // ============================================================
+                        // WEBSOCKET ENDPOINTS
+                        // ============================================================
                         .requestMatchers("/ws/**", "/ws", "/ws/info").permitAll()
 
-                        // Public Views (Only GET requests are public for products, posts, machines, etc.)
+                        // ============================================================
+                        // PUBLIC VIEWS (GET requests only)
+                        // ============================================================
                         .requestMatchers(HttpMethod.GET, "/api/products/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/posts/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/prices/**").permitAll()
@@ -53,14 +71,18 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/likes/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/machines/**").permitAll()
 
-                        // Admin Endpoints
+                        // ============================================================
+                        // ADMIN ENDPOINTS
+                        // ============================================================
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
 
-                        // Authenticated Actions (Create, Update, Delete for Users)
+                        // ============================================================
+                        // AUTHENTICATED ACTIONS
+                        // ============================================================
                         .requestMatchers("/api/user/**").hasAnyRole("REGISTERED_USER", "ADMIN")
                         .requestMatchers("/api/groups/**", "/api/messages/**").hasAnyRole("REGISTERED_USER", "ADMIN")
 
-                        // All other non-GET endpoints or custom requests require authentication
+                        // All other requests require authentication
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
@@ -73,17 +95,41 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(Arrays.asList(
-                "http://localhost:3000",
-                "http://localhost:4200",
-                "http://localhost:5173",
-                "http://localhost:5174",
-                "http://127.0.0.1:3000",
-                "http://127.0.0.1:5173",
-                "http://localhost:5500"
+
+        // Allow all origins that your frontend might use
+        configuration.setAllowedOriginPatterns(Arrays.asList(
+                "http://localhost:*",
+                "http://127.0.0.1:*",
+                "http://192.168.*.*:*",
+                "http://*.agroo.lk"
         ));
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
-        configuration.setAllowedHeaders(Arrays.asList("*"));
+
+        // Allow all methods
+        configuration.setAllowedMethods(Arrays.asList(
+                "GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH", "HEAD"
+        ));
+
+        // Allow all headers
+        configuration.setAllowedHeaders(Arrays.asList(
+                "Authorization",
+                "Content-Type",
+                "Accept",
+                "X-Requested-With",
+                "Origin",
+                "Access-Control-Request-Method",
+                "Access-Control-Request-Headers",
+                "Cache-Control",
+                "Pragma",
+                "Expires"
+        ));
+
+        // Expose headers for frontend access
+        configuration.setExposedHeaders(Arrays.asList(
+                "Authorization",
+                "Content-Disposition",
+                "Content-Type"
+        ));
+
         configuration.setAllowCredentials(true);
         configuration.setMaxAge(3600L);
 
