@@ -36,33 +36,48 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
+
+                        // ============================================================
+                        // CORS PREFLIGHT REQUESTS
+                        // ============================================================
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+
                         // ============================================================
                         // STATIC RESOURCES & UPLOADS
                         // ============================================================
-                        .requestMatchers("/uploads/**", "/images/**", "/static/**").permitAll()
+                        .requestMatchers(
+                                "/uploads/**",
+                                "/images/**",
+                                "/static/**"
+                        ).permitAll()
 
                         // ============================================================
                         // WEATHER SYSTEM - PUBLIC ACCESS
                         // ============================================================
-                        // ✅ Weather data - Anyone can view (No login required)
                         .requestMatchers("/api/weather/**").permitAll()
-
-                        // ⚠️ Weather Alerts - Only logged-in users receive emails
-                        // The email sending is handled in EmailNotificationServiceImpl
-                        // which checks for authenticated user
 
                         // ============================================================
                         // GENERAL PUBLIC ENDPOINTS
                         // ============================================================
-                        .requestMatchers("/", "/api/test", "/api/auth/**", "/api/public/**", "/api/chat/**").permitAll()
+                        .requestMatchers(
+                                "/",
+                                "/api/test",
+                                "/api/auth/**",
+                                "/api/public/**",
+                                "/api/chat/**"
+                        ).permitAll()
 
                         // ============================================================
                         // WEBSOCKET ENDPOINTS
                         // ============================================================
-                        .requestMatchers("/ws/**", "/ws", "/ws/info").permitAll()
+                        .requestMatchers(
+                                "/ws/**",
+                                "/ws",
+                                "/ws/info"
+                        ).permitAll()
 
                         // ============================================================
-                        // PUBLIC VIEWS (GET requests only)
+                        // PUBLIC VIEWS - GET REQUESTS
                         // ============================================================
                         .requestMatchers(HttpMethod.GET, "/api/products/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/posts/**").permitAll()
@@ -79,37 +94,73 @@ public class SecurityConfig {
                         // ============================================================
                         // AUTHENTICATED ACTIONS
                         // ============================================================
-                        .requestMatchers("/api/user/**").hasAnyRole("REGISTERED_USER", "ADMIN")
-                        .requestMatchers("/api/groups/**", "/api/messages/**").hasAnyRole("REGISTERED_USER", "ADMIN")
+                        .requestMatchers("/api/user/**")
+                        .hasAnyRole("REGISTERED_USER", "ADMIN")
 
-                        // All other requests require authentication
+                        .requestMatchers(
+                                "/api/groups/**",
+                                "/api/messages/**"
+                        ).hasAnyRole("REGISTERED_USER", "ADMIN")
+
+                        // ============================================================
+                        // ALL OTHER REQUESTS
+                        // ============================================================
                         .anyRequest().authenticated()
                 )
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .sessionManagement(session ->
+                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                )
                 .authenticationProvider(authenticationProvider())
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(
+                        jwtAuthenticationFilter,
+                        UsernamePasswordAuthenticationFilter.class
+                );
 
         return http.build();
     }
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
+
         CorsConfiguration configuration = new CorsConfiguration();
 
-        // Allow all origins that your frontend might use
+        // ============================================================
+        // ALLOWED FRONTEND ORIGINS
+        // ============================================================
         configuration.setAllowedOriginPatterns(Arrays.asList(
+
+                // Local development
                 "http://localhost:*",
                 "http://127.0.0.1:*",
                 "http://192.168.*.*:*",
+
+                // Vercel production frontend
+                "https://agroo-web-app-frontend.vercel.app",
+
+                // Vercel preview deployments
+                "https://*.vercel.app",
+
+                // Future custom Agroo domains
+                "https://*.agroo.lk",
                 "http://*.agroo.lk"
         ));
 
-        // Allow all methods
+        // ============================================================
+        // ALLOWED HTTP METHODS
+        // ============================================================
         configuration.setAllowedMethods(Arrays.asList(
-                "GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH", "HEAD"
+                "GET",
+                "POST",
+                "PUT",
+                "DELETE",
+                "OPTIONS",
+                "PATCH",
+                "HEAD"
         ));
 
-        // Allow all headers
+        // ============================================================
+        // ALLOWED HEADERS
+        // ============================================================
         configuration.setAllowedHeaders(Arrays.asList(
                 "Authorization",
                 "Content-Type",
@@ -123,31 +174,46 @@ public class SecurityConfig {
                 "Expires"
         ));
 
-        // Expose headers for frontend access
+        // ============================================================
+        // EXPOSED HEADERS
+        // ============================================================
         configuration.setExposedHeaders(Arrays.asList(
                 "Authorization",
                 "Content-Disposition",
                 "Content-Type"
         ));
 
+        // Allow JWT / credential based requests
         configuration.setAllowCredentials(true);
+
+        // Cache preflight response for 1 hour
         configuration.setMaxAge(3600L);
 
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        UrlBasedCorsConfigurationSource source =
+                new UrlBasedCorsConfigurationSource();
+
         source.registerCorsConfiguration("/**", configuration);
+
         return source;
     }
 
     @Bean
     public AuthenticationProvider authenticationProvider() {
-        DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
+
+        DaoAuthenticationProvider authProvider =
+                new DaoAuthenticationProvider();
+
         authProvider.setUserDetailsService(userDetailsService);
         authProvider.setPasswordEncoder(passwordEncoder());
+
         return authProvider;
     }
 
     @Bean
-    public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
+    public AuthenticationManager authenticationManager(
+            AuthenticationConfiguration config
+    ) throws Exception {
+
         return config.getAuthenticationManager();
     }
 
